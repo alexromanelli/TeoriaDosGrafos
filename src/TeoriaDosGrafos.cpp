@@ -71,7 +71,7 @@ void executarAlgoritmo_CicloEuleriano(bool interativo) {
 		cout << "  Grafo não é conexo." << endl;
 	} else {
 		// computar o ciclo euleriano
-		std::list<int> cicloEuleriano = G->determinaCicloEuleriano();
+		std::list<int> cicloEuleriano = G->determinarCicloEuleriano();
 
 		// apresentar o ciclo euleriano
 		if (interativo)

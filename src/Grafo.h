@@ -27,7 +27,7 @@ public:
 	bool ehSimples();
 	bool ehPonte(Aresta e);
 	int vizinhoNaoPonte(int vertice);
-	std::list<int> determinaCicloEuleriano();
+	std::list<int> determinarCicloEuleriano();
 	void removerAresta(int vertice1, int vertice2);
 	virtual ~Grafo();
 };

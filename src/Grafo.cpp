@@ -116,7 +116,7 @@ int Grafo::vizinhoNaoPonte(int vertice) {
 	return -1;
 }
 
-std::list<int> Grafo::determinaCicloEuleriano() {
+std::list<int> Grafo::determinarCicloEuleriano() {
 	int w = 0; // vértice arbitrário para ser tomado como partida do ciclo euleriano
 	std::list<int> EC;
 	EC.push_back(w);
