@@ -10,26 +10,8 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <sstream>
 #include <iostream>
-#include <cstdio>
 using namespace std;
-
-void split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss;
-    ss.str(s);
-    std::string item;
-    while (getline(ss, item, delim)) {
-    	if (item != "")
-    		elems.push_back(item);
-    }
-}
-
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, elems);
-    return elems;
-}
 
 Grafo* lerGrafo(bool interativo) {
 	// obter a quantidade de vértices
