@@ -139,7 +139,13 @@ int main(int argc, char *argv[]) {
 	} else {
 
 		// para testes em lote
-		executarAlgoritmo_CicloEuleriano(false);
+		int opcao = atoi(argv[1]);
+
+		switch (opcao) {
+		case 1:
+			executarAlgoritmo_CicloEuleriano(false);
+			break;
+		}
 
 	}
 	return 0;
