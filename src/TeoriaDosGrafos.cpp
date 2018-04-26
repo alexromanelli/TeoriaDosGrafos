@@ -13,7 +13,7 @@
 #include <iostream>
 using namespace std;
 
-Grafo* lerGrafo(bool interativo) {
+Grafo* lerGrafo(bool interativo, bool valorado) {
 	// obter a quantidade de vértices
 	if (interativo)
 		cout << "  Quantidade de vértices: ";
@@ -42,13 +42,23 @@ Grafo* lerGrafo(bool interativo) {
 		//G->listaAdjacencias[i].resize(d_i, 0);
 
 		if (interativo) {
-			cout << "   -> vizinhos do vértice " << i + 1 << ": ";
+			std::string mensagem = (valorado ? "   -> vizinhos (pares [vizinho] [custo]) do vértice " : "   -> vizinhos do vértice ");
+			cout << mensagem << i + 1 << ": ";
 		}
 		// separar os números dos vértices por espaços
 		for (int j = 0; j < d_i; j++) {
 			int vizinho;
 			cin >> vizinho;
-			G->listaAdjacencias[i].push_back(vizinho - 1);
+			Vizinho* viz = new Vizinho();
+			viz->vertice = vizinho - 1;
+			if (valorado) {
+				int custo;
+				cin >> custo;
+				viz->custo = custo;
+			} else {
+				viz->custo = 1; // no grafo não valorado, todas as arestas têm custo unitário
+			}
+			G->listaAdjacencias[i].push_back(viz);
 		}
 	}
 
@@ -60,7 +70,7 @@ void executarAlgoritmo_CicloEuleriano(bool interativo) {
 		cout << endl << endl << "Algoritmo para determinação de ciclo euleriano em grafo euleriano." << endl;
 	}
 
-	Grafo* G = lerGrafo(interativo);
+	Grafo* G = lerGrafo(interativo, false);
 
 	// verificar as características de existência de ciclo euleriano
 	if (!G->todosVerticesTemGrauPar()) {
@@ -88,6 +98,58 @@ void executarAlgoritmo_CicloEuleriano(bool interativo) {
 	}
 }
 
+void executarAlgoritmo_Dijkstra(bool interativo) {
+	if (interativo) {
+		cout << endl << endl << "Algoritmo para determinação de caminho de custo mínimo de Dijkstra." << endl;
+	}
+
+	Grafo* G = lerGrafo(interativo, true);
+
+	// verificar características necessárias para o algoritmo de Dijkstra (custos positivos)
+	if (!G->todasArestasTemCustoPositivo()) {
+		cout << "  Grafo não possui todas as arestas com custos positivos." << endl;
+	} else {
+		// computar os caminhos de custo mínimo partindo do primeiro vértice até os demais
+		std::vector<int> antecessor;
+		antecessor.resize(G->n, Grafo::SEM_ANTECESSOR);
+		int origem = 0;
+		G->caminhosCustoMinimo_Dijkstra(origem, antecessor);
+
+		// apresentar a árvore de caminhos (se grafo não for conexo, a lista de vértices inatingíveis procede)
+		if (interativo)
+			cout << "  ---> Caminhos de custo mínimo: " << endl;
+
+		for (int i = 0; i < G->n; i++) {
+			// apresentar o caminho da origem até o vértice i
+			if (i == origem) {
+				printf("       [%d] ---> [%d] : %d\n", origem + 1, i + 1, origem + 1);
+			} else {
+				printf("       [%d] ---> [%d] : ", origem + 1, i + 1);
+				if (antecessor[i] == Grafo::SEM_ANTECESSOR) {
+					// vértice inatingível a partir da origem
+					printf(" inatingível\n");
+					continue;
+				}
+				std::list<int> sequencia;
+				sequencia.push_front(i);
+				int atual = antecessor[i];
+				while (atual != Grafo::SEM_ANTECESSOR) {
+					sequencia.push_front(atual);
+					atual = antecessor[atual];
+				}
+				for (std::list<int>::iterator iter = sequencia.begin(); iter != sequencia.end(); iter++) {
+					printf("%d ", (*iter) + 1);
+				}
+				printf("\n");
+			}
+		}
+	}
+
+	if (interativo) {
+		cout << endl << endl;
+	}
+}
+
 int main(int argc, char *argv[]) {
 	if (argc == 1) {
 
@@ -105,7 +167,8 @@ int main(int argc, char *argv[]) {
 		while (true) {
 			// exibir opções
 			cout << "   Opções:" << endl;
-			cout << "     (1) Determinação de ciclo euleriano em grafo euleriano." << endl;
+			cout << "     (1) Ciclo euleriano em grafo euleriano." << endl;
+			cout << "     (2) Caminhos de custo mínimo da origem para os demais vértices." << endl;
 			cout << endl;
 			cout << "     ---> Digite o número da opção desejada, ou 0 para sair: ";
 			int opcao;
@@ -113,6 +176,9 @@ int main(int argc, char *argv[]) {
 			switch (opcao) {
 			case 1:
 				executarAlgoritmo_CicloEuleriano(true);
+				break;
+			case 2:
+				executarAlgoritmo_Dijkstra(true);
 				break;
 			}
 			if (opcao == 0)

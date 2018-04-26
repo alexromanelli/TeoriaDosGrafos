@@ -8,6 +8,10 @@
 #include "Grafo.h"
 #include <vector>
 #include <list>
+#include <climits>
+#include "FilaPorDistancia/FilaPorDistanciaVector.h"
+
+const int Grafo::SEM_ANTECESSOR = -1;
 
 Grafo::Grafo() {
 	n = 0;
@@ -40,7 +44,7 @@ bool Grafo::ehConexo() {
 		visitados++;
 		// inclui vértices adjacentes a v na lista para visitar
 		for (unsigned int i = 0; i < listaAdjacencias[v].size(); i++) {
-			int adjacente = listaAdjacencias[v][i];
+			int adjacente = listaAdjacencias[v][i]->vertice;
 			verticesParaVisitar.push_back(adjacente);
 		}
 	}
@@ -60,7 +64,7 @@ bool Grafo::ehSimples() {
 	for (int i = 0; i < n; i++) {
 		// verifica ciclos (assume-se que não há arestas paralelas)
 		for (unsigned int j = 0; j < listaAdjacencias[i].size(); j++) {
-			if (listaAdjacencias[i][j] == i)
+			if (listaAdjacencias[i][j]->vertice == i)
 				return false;
 		}
 	}
@@ -76,8 +80,8 @@ bool Grafo::ehPonte(Aresta e) {
 	// criar lista de vértices a verificar
 	std::list<int> verticesParaVerificar;
 	for (unsigned int i = 0; i < listaAdjacencias[u].size(); i++) {
-		if (listaAdjacencias[u][i] != v)
-			verticesParaVerificar.push_back(listaAdjacencias[u][i]);
+		if (listaAdjacencias[u][i]->vertice != v)
+			verticesParaVerificar.push_back(listaAdjacencias[u][i]->vertice);
 	}
 	// criar vetor para registrar os vértices verificados, para não repetir
 	bool* verificado = new bool[n];
@@ -91,13 +95,13 @@ bool Grafo::ehPonte(Aresta e) {
 		verificado[w] = true;
 		// adiciona os vizinhos de w à lista de vértices a verificar, exceto se for u
 		for (unsigned int i = 0; i < listaAdjacencias[w].size(); i++) {
-			if (listaAdjacencias[w][i] != u) {
+			if (listaAdjacencias[w][i]->vertice != u) {
 				// se o vértice adjacente a w for v, então não é ponte
-				if (listaAdjacencias[w][i] == v)
+				if (listaAdjacencias[w][i]->vertice == v)
 					return false;
 				// senão, adicionar à lista de vértices a verificar (se não tiver sido verificado ainda)
-				if (!verificado[listaAdjacencias[w][i]])
-					verticesParaVerificar.push_back(listaAdjacencias[w][i]);
+				if (!verificado[listaAdjacencias[w][i]->vertice])
+					verticesParaVerificar.push_back(listaAdjacencias[w][i]->vertice);
 			}
 		}
 	}
@@ -109,9 +113,9 @@ int Grafo::vizinhoNaoPonte(int vertice) {
 	Aresta e;
 	e.lado1 = vertice;
 	for (unsigned int i = 0; i < listaAdjacencias[vertice].size(); i++) {
-		e.lado2 = listaAdjacencias[vertice][i];
+		e.lado2 = listaAdjacencias[vertice][i]->vertice;
 		if (!ehPonte(e))
-			return listaAdjacencias[vertice][i];
+			return listaAdjacencias[vertice][i]->vertice;
 	}
 	return -1;
 }
@@ -128,7 +132,7 @@ std::list<int> Grafo::determinarCicloEuleriano() {
 			// encontrar aresta para vizinho que não seja ponte
 			v = vizinhoNaoPonte(CV);
 		} else {
-			v = listaAdjacencias[CV][0];
+			v = listaAdjacencias[CV][0]->vertice;
 		}
 		removerAresta(CV, v);
 		E_.push_back(v);
@@ -139,20 +143,99 @@ std::list<int> Grafo::determinarCicloEuleriano() {
 }
 
 void Grafo::removerAresta(int v1, int v2) {
-	for (std::vector<int>::iterator iter1 = listaAdjacencias[v1].begin();
+	for (std::vector<Vizinho*>::iterator iter1 = listaAdjacencias[v1].begin();
 			iter1 != listaAdjacencias[v1].end();
 			iter1++) {
-		if (*iter1 == v2) {
+		if ((*iter1)->vertice == v2) {
 			listaAdjacencias[v1].erase(iter1);
 			break;
 		}
 	}
-	for (std::vector<int>::iterator iter2 = listaAdjacencias[v2].begin();
+	for (std::vector<Vizinho*>::iterator iter2 = listaAdjacencias[v2].begin();
 			iter2 != listaAdjacencias[v2].end();
 			iter2++) {
-		if (*iter2 == v1) {
+		if ((*iter2)->vertice == v1) {
 			listaAdjacencias[v2].erase(iter2);
 			break;
+		}
+	}
+}
+
+bool Grafo::todasArestasTemCustoPositivo() {
+	for (std::vector<std::vector<Vizinho*>>::iterator iter1 = listaAdjacencias.begin();
+			iter1 != listaAdjacencias.end();
+			iter1++) {
+		for (std::vector<Vizinho*>::iterator iter2 = (*iter1).begin();
+				iter2 != (*iter1).end();
+				iter2++) {
+			if ((*iter2)->custo < 0)
+				return false;
+		}
+	}
+	return true;
+}
+
+std::list<int> Grafo::obterComponenteConexaDeVertice(int vertice) {
+	// prepara vetor para registrar se vértice já foi visitado
+	bool* visitado = new bool[n];
+	for (int i = 0; i < n; i++) {
+		visitado[i] = false;
+	}
+
+	std::list<int> verticesConectados;
+
+	std::list<int> verticesParaVerificar;
+	verticesParaVerificar.push_front(vertice);
+	visitado[vertice] = true;
+	while (verticesParaVerificar.size() > 0) {
+		int v = verticesParaVerificar.front();
+		verticesParaVerificar.pop_front();
+
+		verticesConectados.push_back(v);
+
+		for (std::vector<Vizinho*>::iterator iter1 = listaAdjacencias[v].begin();
+				iter1 != listaAdjacencias[v].end(); iter1++) {
+			int v_ = (*iter1)->vertice;
+			if (!visitado[v_]) {
+				verticesParaVerificar.push_front(v_);
+				visitado[v_] = true;
+			}
+		}
+
+	}
+	return verticesConectados;
+}
+
+void Grafo::caminhosCustoMinimo_Dijkstra(int verticeOrigem, std::vector<int>& antecessor) {
+	FilaPorDistancia_Vector distanciaMinima;
+	ElementoFila* indice[n];
+	for (int i = 0; i < n; i++) {
+		if (i == verticeOrigem)
+			indice[i] = distanciaMinima.inserirElemento(i, 0);
+		else
+			indice[i] = distanciaMinima.inserirElemento(i, INT_MAX);
+	}
+
+	int contagemAberto = obterComponenteConexaDeVertice(verticeOrigem).size();
+	antecessor[verticeOrigem] = SEM_ANTECESSOR;
+	while (contagemAberto > 0) {
+		int k, d;
+		distanciaMinima.retirarElemento(k, d);
+		delete indice[k];
+		indice[k] = NULL;
+		contagemAberto--;
+
+		for (std::vector<Vizinho*>::iterator vizinho = listaAdjacencias[k].begin();
+				vizinho != listaAdjacencias[k].end(); vizinho++) {
+			if (indice[(*vizinho)->vertice] == NULL) // não está em Aberto
+				continue;
+
+			int verticeVizinho = (*vizinho)->vertice;
+			int custoArestaVizinho = (*vizinho)->custo;
+			if (indice[verticeVizinho]->getDistancia() > d + custoArestaVizinho) {
+				distanciaMinima.alterarDistanciaElemento(verticeVizinho, d + custoArestaVizinho);
+				antecessor[verticeVizinho] = k;
+			}
 		}
 	}
 }
